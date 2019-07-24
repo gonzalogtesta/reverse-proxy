@@ -19,11 +19,21 @@ Server struct
 */
 type Server struct {
 	port     int
-	routes   map[string]string
+	routes   []RouteConfig
 	metrics  statistics.Metrics
 	instance *http.ServeMux
 	client   *http.Client
 	ctx      context.Context
+}
+
+/*
+RouteConfig allows to config
+*/
+type RouteConfig struct {
+	Path   string
+	Server string
+	Limit  int64
+	Time   time.Duration
 }
 
 func (s *Server) getRequest(w http.ResponseWriter, r *http.Request, mapping string) {
@@ -118,8 +128,8 @@ func (s *Server) Run() {
 		w.Write([]byte("Go!"))
 	})))
 
-	for route, mapping := range s.routes {
-		s.instance.HandleFunc(route, s.processRequest(mapping))
+	for _, route := range s.routes {
+		s.instance.HandleFunc(route.Path, s.processRequest(route.Server))
 	}
 
 	listenPort := ":" + strconv.Itoa(s.port)
@@ -133,13 +143,13 @@ func (s *Server) Run() {
 Proxy allows to generate an instance of a proxy server for an specified port.
 
 */
-func Proxy(ctx context.Context, port int, routes map[string]string) Server {
+func Proxy(ctx context.Context, port int, routes []RouteConfig) Server {
 
 	s := Server{
 		ctx:      ctx,
 		port:     port,
 		routes:   routes,
-		metrics:  (&statistics.Metrics{}).Connect(ctx),
+		metrics:  statistics.NewMetrics(ctx),
 		instance: http.NewServeMux(),
 		client: &http.Client{
 			Timeout: 15 * time.Second,
