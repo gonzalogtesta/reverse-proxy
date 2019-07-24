@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io"
 	"net"
 	"net/http"
@@ -73,7 +74,7 @@ func (s *Server) getRequest(w http.ResponseWriter, r *http.Request, mapping stri
 func (s *Server) processRequest(mapping string) http.HandlerFunc {
 	// c := make(chan http.ResponseWriter)
 	return func(w http.ResponseWriter, r *http.Request) {
-		go s.metrics.SendMetrics(r)
+		// go s.metrics.SendMetrics(r)
 
 		s.getRequest(w, r, mapping)
 	}
@@ -96,14 +97,21 @@ func (s *Server) metricRequest(h http.HandlerFunc) http.HandlerFunc {
 		h(w, r)
 		fmt.Println("Sending Metrics")
 		go s.metrics.Track(r)
+		go s.metrics.Hit(r)
 
 	}
+}
+
+type Data struct {
+	Items [][]int64
 }
 
 /*
 Run allows to start Server
 */
 func (s *Server) Run() {
+
+	tmpl := template.Must(template.ParseFiles("statics/layout.html"))
 
 	s.instance.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 
@@ -122,6 +130,14 @@ func (s *Server) Run() {
 				w.Write([]byte(val))
 			}
 		*/
+	})
+
+	s.instance.HandleFunc("/metrics/html", func(w http.ResponseWriter, r *http.Request) {
+		data, _ := s.metrics.GetSerie("hits", time.Second*30)
+		d := Data{
+			Items: data,
+		}
+		tmpl.Execute(w, d)
 	})
 
 	s.instance.HandleFunc("/go", s.isAllowed(s.metricRequest(func(w http.ResponseWriter, r *http.Request) {
