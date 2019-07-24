@@ -68,6 +68,27 @@ func (m *Metrics) Track(r *http.Request) {
 }
 
 /*
+CreateKey creates key with duration
+*/
+func (m *Metrics) CreateKey(key string, duration string) {
+	var timeDuration, _ = time.ParseDuration(duration)
+	_, havit := m.redisConn.Info(key)
+	fmt.Println("Have it: " + key)
+	if havit != nil {
+		m.redisConn.CreateKey(key, timeDuration)
+	}
+}
+
+/*
+Hit allows to track hits to the server
+*/
+func (m *Metrics) Hit(r *http.Request) {
+	var keyname = "hits"
+	now := time.Now().UnixNano() // 1e6 // now in ms
+	m.redisConn.IncBy(keyname, now)
+}
+
+/*
 Get gets
 */
 func (m *Metrics) Get(duration time.Duration) (info map[string]interface{}, err error) {
@@ -83,8 +104,29 @@ func (m *Metrics) Get(duration time.Duration) (info map[string]interface{}, err 
 
 	keys, _ := m.redisConn.Keys()
 	for _, key := range keys {
-		data, _ := m.redisConn.AggRange(key, time.Now().Add(time.Second*-30).UnixNano()/1e6, time.Now().UnixNano()/1e6, redis.CountAggregation, int(time.Millisecond*30))
+		data, _ := m.redisConn.AggRange(key, time.Now().Add(time.Minute*-30).UnixNano()/1e6, time.Now().UnixNano()/1e6, redis.CountAggregation, 1000)
 		info[key] = data
+	}
+
+	return info, nil
+}
+
+/*
+Get gets series
+*/
+func (m *Metrics) GetSerie(key string, duration time.Duration) (info [][]int64, err error) {
+	/*
+		resp, err := m.redisConn.Info("user_request:" + getIP(r))
+		fmt.Println(resp)
+		if err != nil {
+			// handle error
+			fmt.Println("Fail: ", err)
+		}
+	*/
+
+	data, _ := m.redisConn.AggRange(key, time.Now().Add(time.Minute*-30).UnixNano()/1e6, time.Now().UnixNano()/1e6, redis.CountAggregation, 1000)
+	for _, key := range data {
+		info = append(info, []int64{key.Timestamp, int64(key.Value)})
 	}
 
 	return info, nil
