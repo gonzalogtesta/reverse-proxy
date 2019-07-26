@@ -7,16 +7,16 @@
     <script src="https://code.highcharts.com/modules/export-data.js"></script>
     
     <script> 
-    var data = {{ .Items }};
+    
     // 'https://cdn.jsdelivr.net/gh/highcharts/highcharts@v7.0.0/samples/data/usdeur.json',
-    function draw (data) {
+    function draw (data, elem, title) {
 
-        Highcharts.chart('container', {
+        Highcharts.chart(elem, {
             chart: {
                 zoomType: 'x'
             },
             title: {
-                text: '# of hit rate over time'
+                text: title
             },
             subtitle: {
                 text: document.ontouchstart === undefined ?
@@ -27,7 +27,7 @@
             },
             yAxis: {
                 title: {
-                    text: 'Hits'
+                    text: 'Requests'
                 },
                 min: 0
             },
@@ -77,7 +77,26 @@
 </head>
 <body>
     <div id="container" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
-    <script>draw(data);</script>
+    <div style="width: 100%">
+        <div id="container200" style="max-width: 25%; height: 400px; margin: 0 auto; display: inline-block"></div>
+        <div id="container404" style="max-width: 25%; height: 400px; margin: 0 auto; display: inline-block"></div>
+        <div id="container429" style="max-width: 25%; height: 400px; margin: 0 auto; display: inline-block"></div>
+        <div id="container500" style="max-width: 25%; height: 400px; margin: 0 auto; display: inline-block"></div>
+    </div>
+    
+    <script>
+        var hits = {{ .Hits }};
+        var resp200 = {{ .Response200 }};
+        var resp404 = {{ .Response404 }};
+        var resp429 = {{ .Response429 }};
+        var resp500 = {{ .Response500 }};
+
+        draw(hits, "container", "# of hit rate over time");
+        draw(resp200, "container200", "# of 200 responses over time");
+        draw(resp404, "container404", "# of 404 responses over time");
+        draw(resp429, "container429", "# of 429 responses over time");
+        draw(resp500, "container500", "# of 500 responses over time");
+    </script>
 </body>
 
 </html>

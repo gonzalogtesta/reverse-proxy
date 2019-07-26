@@ -1,8 +1,6 @@
 package redis
 
 import (
-	"time"
-
 	redistimeseries "github.com/RedisTimeSeries/redistimeseries-go"
 	redigo "github.com/gomodule/redigo/redis"
 )
@@ -44,11 +42,11 @@ func NewClient(addr, name string, authPass *string) *Client {
 /*
 IncBy increments by one the given key
 */
-func (client *Client) IncBy(key string, value int64, reset time.Duration) (reponse string, err error) {
+func (client *Client) IncBy(key string, value int64) (reponse string, err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
 	// TS.INCRBY key [VALUE] [RESET] [TIME_BUCKET]
-	return redigo.String(conn.Do("TS.INCRBY", key, value, "RESET", 1000, "RETENTION", 1000))
+	return redigo.String(conn.Do("TS.INCRBY", key, value)) //, "RESET", 0, "RETENTION", 1000))
 }
 
 /*

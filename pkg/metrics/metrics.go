@@ -1,13 +1,13 @@
-package statistics
+package metrics
 
 import (
 	"context"
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
 	"time"
 
+	"meli-proxy/utils/ip"
 	"meli-proxy/utils/redis"
 )
 
@@ -27,37 +27,10 @@ func failOnError(err error, msgerr string) {
 }
 
 /*
-
- */
-func getIP(r *http.Request) (ip string) {
-	ip = r.Header.Get("X-Forwarded-For")
-	if ip == "" {
-		if strings.Count(r.RemoteAddr, ":") < 2 {
-			ip = strings.Split(r.RemoteAddr, ":")[0]
-		} else {
-			ip = strings.Split(r.RemoteAddr, "]")[0] + "]"
-		}
-	}
-	return
-}
-
-/*
 Track tracks
 */
 func (m *Metrics) Track(r *http.Request) {
-	fmt.Println("Ok:")
-	var duration, _ = time.ParseDuration("5m")
-
-	var keyname = "user_request:" + getIP(r)
-
-	fmt.Println("Key name: " + keyname)
-	_, havit := m.redisConn.Info(keyname)
-	fmt.Println("Have it: " + keyname)
-	if false && havit != nil {
-		m.redisConn.CreateKey(keyname, duration)
-		m.redisConn.CreateKey(keyname+"_avg", 0)
-		m.redisConn.CreateRule(keyname, redis.AvgAggregation, 60, keyname+"_avg")
-	}
+	var keyname = "user_request:" + ip.GetIP(r)
 
 	now := time.Now().UnixNano() / 1e6 // now in ms
 	_, err := m.redisConn.Add(keyname, now, 1)
@@ -89,6 +62,15 @@ func (m *Metrics) Hit(r *http.Request) {
 }
 
 /*
+SendCode allows to track status code of the server
+*/
+func (m *Metrics) SendCode(code int) {
+	var keyname = fmt.Sprintf("response_%d", code)
+	now := time.Now().UnixNano() // 1e6 // now in ms
+	m.redisConn.IncBy(keyname, now)
+}
+
+/*
 Get gets
 */
 func (m *Metrics) Get(duration time.Duration) (info map[string]interface{}, err error) {
@@ -112,17 +94,9 @@ func (m *Metrics) Get(duration time.Duration) (info map[string]interface{}, err 
 }
 
 /*
-Get gets series
+GetSerie gets series
 */
 func (m *Metrics) GetSerie(key string, duration time.Duration) (info [][]int64, err error) {
-	/*
-		resp, err := m.redisConn.Info("user_request:" + getIP(r))
-		fmt.Println(resp)
-		if err != nil {
-			// handle error
-			fmt.Println("Fail: ", err)
-		}
-	*/
 
 	data, _ := m.redisConn.AggRange(key, time.Now().Add(time.Minute*-30).UnixNano()/1e6, time.Now().UnixNano()/1e6, redis.CountAggregation, 1000)
 	for _, key := range data {
@@ -135,16 +109,17 @@ func (m *Metrics) GetSerie(key string, duration time.Duration) (info [][]int64, 
 /*
 GetForPeriod gets
 */
-func (m *Metrics) GetForPeriod(r *http.Request, duration time.Duration) (sum int64, err error) {
+func (m *Metrics) GetForPeriod(keyname string, duration time.Duration) (sum int64, err error) {
 
-	var keyname = "user_request:" + getIP(r)
+	// var keyname = keys.GenerateKey(r) // "user_request:" + getIP(r)
+
 	resp, _ := m.redisConn.AggRange(keyname,
 		time.Now().Add(time.Second*-30).UnixNano()/1e6,
 		time.Now().UnixNano()/1e6, redis.CountAggregation,
 		int(time.Millisecond*30))
 	sum = 0
 	for _, item := range resp {
-		fmt.Println(item.Value)
+		// fmt.Println(item.Value)
 		// val, _ := item.Value
 		sum += int64(item.Value)
 	}

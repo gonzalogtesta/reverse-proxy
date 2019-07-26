@@ -2,41 +2,27 @@ package main
 
 import (
 	"context"
+	"flag"
 	"time"
 
-	"meli-proxy/proxy"
+	"meli-proxy/cmd/proxy/server"
+	"meli-proxy/pkg/routes"
 )
 
-var servingRoutes = map[string]string{
-	"/categories/": "https://api.mercadolibre.com",
-	"/cars/":       "http://apps-sysone-app.apps.us-east-2.online-starter.openshift.com",
-}
-
-var portToServer = map[int]map[string]string{
-	8081: servingRoutes,
-	8080: {"/": "http://apps-sysone-app.apps.us-east-2.online-starter.openshift.com"},
-}
-
-var config = proxy.RouteConfig{
-	Path:   "/categories/",
-	Server: "https://api.mercadolibre.com",
-	Limit:  30,
-	Time:   time.Second,
-}
-
-var routing = []proxy.RouteConfig{
-	proxy.RouteConfig{
+var routing = []routes.RouteConfig{
+	routes.RouteConfig{
 		Path:   "/categories/",
 		Server: "https://api.mercadolibre.com",
-		Limit:  30,
+		Limit:  5000,
 		Time:   time.Second,
 	},
 }
 
 func main() {
+	addr := flag.Int("addr", 8081, "HTTP network address")
 
 	ctx := context.Background()
-	s := proxy.Proxy(ctx, 8081, routing)
+	s := server.Proxy(ctx, *addr, routing)
 	s.Run()
 
 }

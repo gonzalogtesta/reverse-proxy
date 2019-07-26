@@ -1,10 +1,12 @@
-package proxy
+package server
 
 import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"html/template"
+	"io"
 	"net"
 	"net/http"
 	"strconv"
@@ -13,6 +15,7 @@ import (
 	"meli-proxy/middleware"
 	"meli-proxy/pkg/metrics"
 	"meli-proxy/pkg/routes"
+	"meli-proxy/utils/ip"
 )
 
 /*
@@ -27,7 +30,6 @@ type Server struct {
 	ctx      context.Context
 }
 
-/*
 func (s *Server) getRequest(w http.ResponseWriter, r *http.Request, mapping string) {
 	fmt.Println("Request:")
 	fmt.Println(s.port)
@@ -73,7 +75,7 @@ func (s *Server) processRequest(mapping string) http.HandlerFunc {
 
 func (s *Server) isAllowed(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if val, _ := s.Metrics.GetForPeriod(r, time.Second*30); val >= 300 {
+		if val, _ := s.Metrics.GetForPeriod("user_request:"+ip.GetIP(r), time.Second*30); val >= 5000 {
 			http.Error(w, "Too Many Requests", 429)
 			// 429 Too Many Requests
 			return
@@ -82,7 +84,7 @@ func (s *Server) isAllowed(h http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-
+/*
 func (s *Server) metricRequest(h http.HandlerFunc) http.HandlerFunc {
 	fmt.Println("Middleware ON")
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -141,7 +143,7 @@ func (s *Server) Run() {
 	}))
 
 	for _, route := range s.routes {
-		s.instance.HandleFunc(route.Path, middleware.IsAllowed(route, s.processRequest(route.Server)))
+		s.instance.HandleFunc(route.Path, middleware.IsAllowed(route, s.Metrics, s.processRequest(route.Server)))
 	}
 
 	listenPort := ":" + strconv.Itoa(s.port)
