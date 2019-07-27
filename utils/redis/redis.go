@@ -1,7 +1,10 @@
 package redis
 
 import (
+	"fmt"
+
 	redistimeseries "github.com/RedisTimeSeries/redistimeseries-go"
+	"github.com/gomodule/redigo/redis"
 	redigo "github.com/gomodule/redigo/redis"
 )
 
@@ -52,12 +55,51 @@ func (client *Client) IncBy(key string, value int64) (reponse string, err error)
 /*
 Keys returns all the keys for the pattern given
 */
-func (client *Client) Keys() (keys []string,
-	err error) {
+func (client *Client) Keys() (keys []string, err error) {
 	conn := client.Pool.Get()
 	defer conn.Close()
 	info, err := conn.Do("KEYS", "*")
 
 	keys, err = redigo.Strings(info, err)
 	return keys, err
+}
+
+/*
+KeysNames returns all the keys for the pattern given
+*/
+func (client *Client) KeysNames(pattern string) (keys []string, err error) {
+	conn := client.Pool.Get()
+	defer conn.Close()
+	n := 0
+	for {
+		fmt.Println("Pattern: ", pattern)
+		arr, err := redis.Values(conn.Do("SCAN", n, "MATCH", pattern))
+		if err != nil {
+			return keys, fmt.Errorf("error retrieving '%s' keys", pattern)
+		}
+		fmt.Println("Arr: ", arr)
+		n, _ = redis.Int(arr[0], nil)
+		k, _ := redis.Strings(arr[1], nil)
+		keys = append(keys, k...)
+		if n == 0 {
+			break
+		}
+	}
+
+	return keys, err
+}
+
+func (client *Client) TrackTime(keyname string, time int64, value float64) {
+	key := fmt.Sprintf("ts:%s:%d", keyname, time)
+	fmt.Println(key)
+	conn := client.Pool.Get()
+	defer conn.Close()
+	conn.Do("RPUSH", key, value)
+}
+
+func (client *Client) LLen(keyname string) string {
+	conn := client.Pool.Get()
+	defer conn.Close()
+	len, _ := redis.String(conn.Do("LLEN", keyname))
+	return len
 }

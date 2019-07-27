@@ -3,9 +3,7 @@ package server
 import (
 	"context"
 	"crypto/tls"
-	"encoding/json"
 	"fmt"
-	"html/template"
 	"io"
 	"net"
 	"net/http"
@@ -109,33 +107,8 @@ Run allows to start Server
 */
 func (s *Server) Run() {
 
-	tmpl := template.Must(template.ParseFiles("statics/layout.html"))
-
 	s.instance.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 
-	})
-
-	s.instance.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
-		data, _ := s.Metrics.Get(time.Second * 30)
-
-		buf, _ := json.Marshal(data)
-		w.Write(buf)
-	})
-
-	s.instance.HandleFunc("/metrics/html", func(w http.ResponseWriter, r *http.Request) {
-		data, _ := s.Metrics.GetSerie("hits", time.Second*30)
-		resp200, _ := s.Metrics.GetSerie("response_200", time.Second*30)
-		resp404, _ := s.Metrics.GetSerie("response_404", time.Second*30)
-		resp429, _ := s.Metrics.GetSerie("response_429", time.Second*30)
-		resp500, _ := s.Metrics.GetSerie("response_500", time.Second*30)
-		d := Data{
-			Hits:        data,
-			Response200: resp200,
-			Response404: resp404,
-			Response429: resp429,
-			Response500: resp500,
-		}
-		tmpl.Execute(w, d)
 	})
 
 	s.instance.HandleFunc("/go", s.isAllowed(func(w http.ResponseWriter, r *http.Request) {

@@ -50,10 +50,11 @@ func (m *Middleware) metricRequest(me *metrics.Metrics, h http.HandlerFunc) http
 type metricResponseWriter struct {
 	http.ResponseWriter
 	statusCode int
+	startTime  time.Time
 }
 
 func NewMetricResponseWriter(w http.ResponseWriter) *metricResponseWriter {
-	return &metricResponseWriter{w, http.StatusOK}
+	return &metricResponseWriter{w, http.StatusOK, time.Now()}
 }
 
 func (lrw *metricResponseWriter) WriteHeader(code int) {
@@ -70,6 +71,6 @@ func WrapHandlerWithMetric(me metrics.Metrics, wrappedHandler http.Handler) http
 		wrappedHandler.ServeHTTP(mrw, r)
 
 		statusCode := mrw.statusCode
-		go me.SendCode(statusCode)
+		go me.SendCode(statusCode, mrw.startTime)
 	})
 }

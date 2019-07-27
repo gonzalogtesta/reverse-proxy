@@ -32,7 +32,7 @@ Track tracks
 func (m *Metrics) Track(r *http.Request) {
 	var keyname = "user_request:" + ip.GetIP(r)
 
-	now := time.Now().UnixNano() / 1e6 // now in ms
+	now := time.Now().UnixNano() // 1e6 // now in ms
 	_, err := m.redisConn.Add(keyname, now, 1)
 
 	if err != nil {
@@ -64,29 +64,41 @@ func (m *Metrics) Hit(r *http.Request) {
 /*
 SendCode allows to track status code of the server
 */
-func (m *Metrics) SendCode(code int) {
+func (m *Metrics) SendCode(code int, startTime time.Time) {
 	var keyname = fmt.Sprintf("response_%d", code)
 	now := time.Now().UnixNano() // 1e6 // now in ms
 	m.redisConn.IncBy(keyname, now)
+
+	//keyname = fmt.Sprintf("response_%d_time", code)
+	// m.redisConn.
+	//now = time.Since(startTime).UnixNano() // / 1e6 // now in ms
+	fmt.Println("Time: ", time.Now().UnixNano()/1e6)
+	fmt.Println("Time: ", time.Now().UnixNano()/int64(time.Millisecond))
+	fmt.Println("Time 2: ", time.Now().UnixNano())
+	fmt.Println("Time seconds: ", time.Now().UnixNano()/int64(time.Second))
+	fmt.Println("Time seconds: ", time.Now().UnixNano()/int64(time.Minute))
+	// m.redisConn.TrackTime(keyname, time.Now().UnixNano()/1e6, float64(time.Since(startTime))/float64(time.Millisecond))
+	//int64(*time.Millisecond)/1e6)
+}
+
+func (m *Metrics) GetPercentile(percentile int, duration time.Duration) (info [][]int64, err error) {
+	// TODO: calculate percentiles
+	return nil, nil
 }
 
 /*
 Get gets
 */
 func (m *Metrics) Get(duration time.Duration) (info map[string]interface{}, err error) {
-	/*
-		resp, err := m.redisConn.Info("user_request:" + getIP(r))
-		fmt.Println(resp)
-		if err != nil {
-			// handle error
-			fmt.Println("Fail: ", err)
-		}
-	*/
+
 	info = make(map[string]interface{})
+	now := time.Now()
+	fromTimestamp := now.Add(-duration).UnixNano() / 1e6
+	toTimestamp := time.Now().UnixNano() / 1e6
 
 	keys, _ := m.redisConn.Keys()
 	for _, key := range keys {
-		data, _ := m.redisConn.AggRange(key, time.Now().Add(time.Minute*-30).UnixNano()/1e6, time.Now().UnixNano()/1e6, redis.CountAggregation, 1000)
+		data, _ := m.redisConn.AggRange(key, fromTimestamp, toTimestamp, redis.CountAggregation, 1000)
 		info[key] = data
 	}
 
@@ -98,7 +110,14 @@ GetSerie gets series
 */
 func (m *Metrics) GetSerie(key string, duration time.Duration) (info [][]int64, err error) {
 
-	data, _ := m.redisConn.AggRange(key, time.Now().Add(time.Minute*-30).UnixNano()/1e6, time.Now().UnixNano()/1e6, redis.CountAggregation, 1000)
+	now := time.Now()
+	fromTimestamp := now.Add(-duration).UnixNano() / 1e6
+	toTimestamp := time.Now().UnixNano() / 1e6
+	data, err := m.redisConn.AggRange(key, fromTimestamp, toTimestamp, redis.CountAggregation, 1000)
+	if err != nil {
+		return info, err
+	}
+
 	for _, key := range data {
 		info = append(info, []int64{key.Timestamp, int64(key.Value)})
 	}
@@ -107,20 +126,17 @@ func (m *Metrics) GetSerie(key string, duration time.Duration) (info [][]int64, 
 }
 
 /*
-GetForPeriod gets
+GetForPeriod gets number of counts for a period
 */
 func (m *Metrics) GetForPeriod(keyname string, duration time.Duration) (sum int64, err error) {
 
-	// var keyname = keys.GenerateKey(r) // "user_request:" + getIP(r)
-
-	resp, _ := m.redisConn.AggRange(keyname,
-		time.Now().Add(time.Second*-30).UnixNano()/1e6,
-		time.Now().UnixNano()/1e6, redis.CountAggregation,
-		int(time.Millisecond*30))
+	now := time.Now()
+	fromTimestamp := now.Add(-duration).UnixNano() / 1e6
+	toTimestamp := time.Now().UnixNano() / 1e6
+	resp, _ := m.redisConn.AggRange(keyname, fromTimestamp, toTimestamp, redis.CountAggregation,
+		int(duration))
 	sum = 0
 	for _, item := range resp {
-		// fmt.Println(item.Value)
-		// val, _ := item.Value
 		sum += int64(item.Value)
 	}
 
@@ -154,41 +170,17 @@ func NewMetrics(ctx context.Context) Metrics {
 }
 
 /*
-SendMetrics allows to send metric information from a HTTP Request to a AMQP instance.
-
+GetKeys get keys
 */
-func (m *Metrics) SendMetrics(r *http.Request) {
-	/*
-		fmt.Println(r.RemoteAddr)
-		fmt.Println(r.Header.Get("X-Forwarded-For"))
-		fmt.Println(r.Header.Get("User-Agent"))
-		fmt.Println(r.Method)
-		fmt.Println(r.RequestURI)
-		fmt.Println(r.Proto)
+func (m *Metrics) GetKeys(generics []string) (keys []string) {
 
-		obj := map[string]string{
-			"remoteAddr":      r.RemoteAddr,
-			"x-forwarded-for": r.Header.Get("X-Forwarded-For"),
-			"user-agent":      r.Header.Get("User-Agent"),
-			"method":          r.Method,
-			"requestURI":      r.RequestURI,
-			"proto":           r.Proto,
+	for _, pattern := range generics {
+		retrievedKeys, _ := m.redisConn.KeysNames(pattern)
+		fmt.Println("Keys: ", retrievedKeys)
+		for _, key := range retrievedKeys {
+			keys = append(keys, key)
 		}
+	}
 
-		//Publish to the queue
-
-		jsonString, err := json.Marshal(obj)
-
-		err = m.ch.Publish(
-			"proxy.new-request", //exchange
-			m.q.Name,            //routing key
-			false,               //mandatory
-			false,               //immediate
-			amqp.Publishing{
-				ContentType: "text/plain",
-				Body:        []byte(jsonString),
-			})
-
-		failOnError(err, "Failed to publish a message ", "Published the message")
-	*/
+	return keys
 }

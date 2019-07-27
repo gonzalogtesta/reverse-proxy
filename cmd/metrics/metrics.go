@@ -1,9 +1,19 @@
 package main
 
-import "meli-proxy/metrics"
+import (
+	"context"
+
+	metrics "meli-proxy/pkg/metrics"
+	metricsserver "meli-proxy/pkg/server/metrics"
+)
 
 func main() {
 
-	metrics.Run()
+	ctx := context.Background()
+	server := metricsserver.MetricsServer{
+		Metrics: metrics.NewMetrics(ctx),
+	}
+
+	server.Run()
 
 }
