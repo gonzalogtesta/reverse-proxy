@@ -3,14 +3,10 @@ package proxy
 import (
 	"context"
 	"crypto/tls"
-	"encoding/json"
-	"html/template"
 	"net"
 	"net/http"
-	"strconv"
 	"time"
 
-	"meli-proxy/middleware"
 	"meli-proxy/pkg/metrics"
 	"meli-proxy/pkg/routes"
 )
@@ -104,7 +100,7 @@ type Data struct {
 
 /*
 Run allows to start Server
-*/
+
 func (s *Server) Run() {
 
 	tmpl := template.Must(template.ParseFiles("statics/layout.html"))
@@ -150,7 +146,7 @@ func (s *Server) Run() {
 		panic(err) // don't panic
 	}
 }
-
+*/
 /*
 Proxy allows to generate an instance of a proxy server for an specified port.
 

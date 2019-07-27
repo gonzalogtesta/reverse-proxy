@@ -12,23 +12,12 @@ type Middleware struct {
 }
 
 /*
-func (m *Middleware) oldprocessRequest(mapping string, me *metrics.Metrics, h http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if val, _ := me.GetForPeriod(r, time.Second*30); val >= 300 {
-			http.Error(w, "Too Many Requests", 429)
-			// 429 Too Many Requests
-			return
-		}
-		h(w, r)
-	}
-}
+IsAllowed checks user limits configured in the RouteConfig
 */
 func IsAllowed(route routes.RouteConfig, me metrics.Metrics, h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
-		if val, _ := me.GetForPeriod(keys.GenerateKey(r, route), time.Second*route.Time); val >= route.Limit {
+		if val, _ := me.GetForPeriod(keys.GenerateKey(route, r), time.Second*route.Time); val >= route.Limit {
 			http.Error(w, "Too Many Requests", 429)
-			// 429 Too Many Requests
 			return
 		}
 		h(w, r)
@@ -36,24 +25,25 @@ func IsAllowed(route routes.RouteConfig, me metrics.Metrics, h http.HandlerFunc)
 }
 
 /*
-func (m *Middleware) metricRequest(me *metrics.Metrics, h http.HandlerFunc) http.HandlerFunc {
-	fmt.Println("Middleware ON")
+TrackUser tracks an user request information
+*/
+func TrackUser(route routes.RouteConfig, me metrics.Metrics, h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		go me.Track(route, r)
 		h(w, r)
-		fmt.Println("Sending Metrics")
-		go me.Track(r)
-		go me.Hit(r)
-
 	}
 }
-*/
+
+/*
+
+ */
 type metricResponseWriter struct {
 	http.ResponseWriter
 	statusCode int
 	startTime  time.Time
 }
 
-func NewMetricResponseWriter(w http.ResponseWriter) *metricResponseWriter {
+func newMetricResponseWriter(w http.ResponseWriter) *metricResponseWriter {
 	return &metricResponseWriter{w, http.StatusOK, time.Now()}
 }
 
@@ -62,12 +52,16 @@ func (lrw *metricResponseWriter) WriteHeader(code int) {
 	lrw.ResponseWriter.WriteHeader(code)
 
 }
+
+/*
+WrapHandlerWithMetric allows to take metrics
+*/
 func WrapHandlerWithMetric(me metrics.Metrics, wrappedHandler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		go me.Track(r)
+		// go me.Track(r)
 		go me.Hit(r)
 
-		mrw := NewMetricResponseWriter(w)
+		mrw := newMetricResponseWriter(w)
 		wrappedHandler.ServeHTTP(mrw, r)
 
 		statusCode := mrw.statusCode

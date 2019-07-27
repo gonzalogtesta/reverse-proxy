@@ -7,7 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	"meli-proxy/utils/ip"
+	"meli-proxy/pkg/keys"
+	"meli-proxy/pkg/routes"
 	"meli-proxy/utils/redis"
 )
 
@@ -29,10 +30,11 @@ func failOnError(err error, msgerr string) {
 /*
 Track tracks
 */
-func (m *Metrics) Track(r *http.Request) {
-	var keyname = "user_request:" + ip.GetIP(r)
+func (m *Metrics) Track(route routes.RouteConfig, r *http.Request) {
 
-	now := time.Now().UnixNano() // 1e6 // now in ms
+	var keyname = keys.GenerateKey(route, r)
+
+	now := time.Now().UnixNano() / 1e6 // now in ms
 	_, err := m.redisConn.Add(keyname, now, 1)
 
 	if err != nil {
@@ -77,6 +79,11 @@ func (m *Metrics) SendCode(code int, startTime time.Time) {
 	fmt.Println("Time 2: ", time.Now().UnixNano())
 	fmt.Println("Time seconds: ", time.Now().UnixNano()/int64(time.Second))
 	fmt.Println("Time seconds: ", time.Now().UnixNano()/int64(time.Minute))
+	newkey := fmt.Sprintf("%s:%d", keyname, now/1e6)
+	_, err := m.redisConn.Add(newkey, now/1e6, float64(time.Since(startTime))/float64(time.Millisecond))
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
 	// m.redisConn.TrackTime(keyname, time.Now().UnixNano()/1e6, float64(time.Since(startTime))/float64(time.Millisecond))
 	//int64(*time.Millisecond)/1e6)
 }

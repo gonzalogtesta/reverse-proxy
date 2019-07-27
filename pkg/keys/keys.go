@@ -1,31 +1,42 @@
 package keys
 
 import (
+	"fmt"
 	"meli-proxy/pkg/routes"
 	"meli-proxy/utils/ip"
 	"net/http"
 	"strings"
 )
 
-func remoteAddr(r *http.Request) string {
-	return "OK"
-}
-
 /*
-
-const (
-	REMOTEADDR        func = remoteAddr
-	REQUESTURI string = "RequestURI"
-)
-
+Key constants
 */
+const (
+	StartKey                string = "user_request:"
+	OriginIP                string = "IP:%s"
+	DestinationPath         string = "Path:%s"
+	OriginIPDestinationPath string = OriginIP + "_" + DestinationPath
+	OriginIPUserAgent       string = OriginIP + "_UserAgent:%s"
+)
 
 /*
 GenerateKey generates a key based on a http request
 */
-func GenerateKey(r *http.Request, route routes.RouteConfig) string {
+func GenerateKey(route routes.RouteConfig, r *http.Request) string {
 
-	return "user_request:" + ip.GetIP(r) //fmt.Sprintf("a %s", "string")
+	key := ""
+	switch route.LimitType {
+	case routes.OriginIP:
+		key = fmt.Sprintf(OriginIP, ip.GetIP(r))
+	case routes.DestinationPath:
+		key = fmt.Sprintf(DestinationPath, r.RequestURI)
+	case routes.OriginIPDestinationPath:
+		key = fmt.Sprintf(OriginIPDestinationPath, ip.GetIP(r), r.RequestURI)
+	case routes.OriginIPUserAgent:
+		key = fmt.Sprintf(OriginIPUserAgent, ip.GetIP(r), r.UserAgent())
+	}
+
+	return StartKey + key
 }
 
 /*

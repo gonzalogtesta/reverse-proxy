@@ -14,7 +14,7 @@ const (
 	OriginIP                LimitType = "OriginIP"
 	DestinationPath         LimitType = "Path"
 	OriginIPDestinationPath LimitType = OriginIP + DestinationPath
-	UserAgent               LimitType = "UserAgent"
+	OriginIPUserAgent       LimitType = OriginIP + "UserAgent"
 )
 
 /*
