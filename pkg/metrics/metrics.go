@@ -68,28 +68,23 @@ SendCode allows to track status code of the server
 */
 func (m *Metrics) SendCode(code int, startTime time.Time) {
 	var keyname = fmt.Sprintf("response_%d", code)
-	now := time.Now().UnixNano() // 1e6 // now in ms
+	now := time.Now().UnixNano()
 	m.redisConn.IncBy(keyname, now)
 
-	//keyname = fmt.Sprintf("response_%d_time", code)
-	// m.redisConn.
-	//now = time.Since(startTime).UnixNano() // / 1e6 // now in ms
-	fmt.Println("Time: ", time.Now().UnixNano()/1e6)
-	fmt.Println("Time: ", time.Now().UnixNano()/int64(time.Millisecond))
-	fmt.Println("Time 2: ", time.Now().UnixNano())
-	fmt.Println("Time seconds: ", time.Now().UnixNano()/int64(time.Second))
-	fmt.Println("Time seconds: ", time.Now().UnixNano()/int64(time.Minute))
-	newkey := fmt.Sprintf("%s:%d", keyname, now/1e6)
-	_, err := m.redisConn.Add(newkey, now/1e6, float64(time.Since(startTime))/float64(time.Millisecond))
+	seconds := time.Now().UnixNano() / int64(time.Second)
+	newkey := fmt.Sprintf("%s:time", keyname)
+	_, err := m.redisConn.IncBy(newkey, seconds)
 	if err != nil {
 		fmt.Println("Error:", err)
 	}
-	// m.redisConn.TrackTime(keyname, time.Now().UnixNano()/1e6, float64(time.Since(startTime))/float64(time.Millisecond))
-	//int64(*time.Millisecond)/1e6)
+	m.redisConn.TrackTime(fmt.Sprintf("%s:%d", keyname, seconds), float64(time.Since(startTime))/float64(time.Millisecond))
+
 }
 
 func (m *Metrics) GetPercentile(percentile int, duration time.Duration) (info [][]int64, err error) {
 	// TODO: calculate percentiles
+	// Get all keys in a range (duration) e.g. using key name response_200:time
+	// For each timestamp get size of list response_200:timestamp and calculate percentile
 	return nil, nil
 }
 

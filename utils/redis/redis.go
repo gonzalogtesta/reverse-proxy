@@ -89,9 +89,8 @@ func (client *Client) KeysNames(pattern string) (keys []string, err error) {
 	return keys, err
 }
 
-func (client *Client) TrackTime(keyname string, time int64, value float64) {
-	key := fmt.Sprintf("ts:%s:%d", keyname, time)
-	fmt.Println(key)
+func (client *Client) TrackTime(keyname string, value float64) {
+	key := fmt.Sprintf("ls:%s", keyname)
 	conn := client.Pool.Get()
 	defer conn.Close()
 	conn.Do("RPUSH", key, value)
