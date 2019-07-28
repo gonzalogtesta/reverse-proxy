@@ -16,7 +16,7 @@ IsAllowed checks user limits configured in the RouteConfig
 */
 func IsAllowed(route routes.RouteConfig, me metrics.Metrics, h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if val, _ := me.GetForPeriod(keys.GenerateKey(route, r), time.Second*route.Time); val >= route.Limit {
+		if val, _ := me.GetForPeriod(keys.GenerateKey(route, r), route.Time); val >= route.Limit {
 			http.Error(w, "Too Many Requests", 429)
 			return
 		}
