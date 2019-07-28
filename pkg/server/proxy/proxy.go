@@ -76,7 +76,7 @@ func (s *Server) Run() {
 	testRoute := routes.RouteConfig{
 		Path:      "/go/",
 		Server:    "https://localhost",
-		Limit:     1000,
+		Limit:     200,
 		Time:      time.Second,
 		LimitType: routes.OriginIPUserAgent,
 	}
