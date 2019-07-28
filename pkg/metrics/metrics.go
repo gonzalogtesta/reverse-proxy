@@ -73,6 +73,7 @@ func (m *Metrics) SendCode(code int, startTime time.Time) {
 
 	seconds := time.Now().UnixNano() / int64(time.Second)
 	newkey := fmt.Sprintf("%s:time", keyname)
+	//fmt.Println("New key: ", newkey)
 	_, err := m.redisConn.IncBy(newkey, seconds)
 	if err != nil {
 		fmt.Println("Error:", err)
@@ -81,11 +82,53 @@ func (m *Metrics) SendCode(code int, startTime time.Time) {
 
 }
 
-func (m *Metrics) GetPercentile(percentile int, duration time.Duration) (info [][]int64, err error) {
+func (m *Metrics) GetPercentile(percentile int, duration time.Duration) (info [][]float64, err error) {
 	// TODO: calculate percentiles
 	// Get all keys in a range (duration) e.g. using key name response_200:time
 	// For each timestamp get size of list response_200:timestamp and calculate percentile
-	return nil, nil
+	now := time.Now()
+	fromTimestamp := now.Add(-duration).UnixNano() / 1e6
+	toTimestamp := time.Now().UnixNano() / 1e6
+	data, _ := m.redisConn.AggRange("response_200:time", fromTimestamp, toTimestamp, redis.CountAggregation, 1000)
+	for _, item := range data {
+		num := item.Value
+		index := float64(percentile/100) * num
+
+		keyname := fmt.Sprintf("ls:%s:%d", "response_200", item.Timestamp/1000)
+		//fmt.Println("Keyname: ", keyname)
+		if index == float64(int64(index)) {
+			actual := int64(index)
+			prev := actual - 1
+
+			response1, _ := m.redisConn.GetFromSortedList(keyname, prev-1, 1)
+			//fmt.Println("Error: ", err)
+			if len(response1) == 0 {
+				continue
+			}
+			//fmt.Println("First: ", response1)
+			response2, _ := m.redisConn.GetFromSortedList(keyname, actual-1, 1)
+			//fmt.Println("Second: ", response1)
+			items := []float64{
+				float64(item.Timestamp),
+				float64((response1[0] + response2[0]) / 2),
+			}
+			info = append(info, items)
+		} else {
+			round := int64(index)
+			response, _ := m.redisConn.GetFromSortedList(keyname, round, 1)
+			//fmt.Println("Error: ", err)
+			if len(response) == 0 {
+				continue
+			}
+			items := []float64{
+				float64(item.Timestamp),
+				float64(response[0]),
+			}
+			info = append(info, items)
+		}
+
+	}
+	return info, nil
 }
 
 /*

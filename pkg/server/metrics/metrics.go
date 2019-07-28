@@ -18,11 +18,12 @@ type MetricsServer struct {
 }
 
 type Data struct {
-	Hits        [][]int64
-	Response200 [][]int64
-	Response404 [][]int64
-	Response429 [][]int64
-	Response500 [][]int64
+	Hits         [][]int64
+	Response200  [][]int64
+	Response404  [][]int64
+	Response429  [][]int64
+	Response500  [][]int64
+	Percentile90 [][]float64
 }
 
 func (s *MetricsServer) metricsRoute() http.HandlerFunc {
@@ -34,10 +35,10 @@ func (s *MetricsServer) metricsRoute() http.HandlerFunc {
 		timeFrame := r.URL.Query().Get("time")
 
 		generic, simple := keys.GroupKeys(metricKeys)
-		fmt.Println("Generic: ", generic)
-		fmt.Println("Simple: ", simple)
+		//fmt.Println("Generic: ", generic)
+		//fmt.Println("Simple: ", simple)
 		items := s.Metrics.GetKeys(generic)
-		fmt.Println("Items: ", items)
+		//fmt.Println("Items: ", items)
 		simple = append(simple, items...)
 
 		data := make(map[string]interface{})
@@ -59,7 +60,7 @@ func (s *MetricsServer) metricsRoute() http.HandlerFunc {
 func (s *MetricsServer) metricsPercentilesRoute() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		data := s.Metrics.GetPercentile(90, time.Minute*30)
+		data, _ := s.Metrics.GetPercentile(90, time.Minute*30)
 
 		buf, _ := json.Marshal(data)
 		w.Write(buf)
@@ -68,17 +69,24 @@ func (s *MetricsServer) metricsPercentilesRoute() http.HandlerFunc {
 
 func (s *MetricsServer) metricsHTML(tmpl *template.Template) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		data, _ := s.Metrics.GetSerie("hits", time.Second*30)
-		resp200, _ := s.Metrics.GetSerie("response_200", time.Second*30)
-		resp404, _ := s.Metrics.GetSerie("response_404", time.Second*30)
-		resp429, _ := s.Metrics.GetSerie("response_429", time.Second*30)
-		resp500, _ := s.Metrics.GetSerie("response_500", time.Second*30)
+		timeFrame := r.URL.Query().Get("time")
+		duration, err := time.ParseDuration(timeFrame)
+		if err != nil {
+			duration = time.Second * 30
+		}
+		data, _ := s.Metrics.GetSerie("hits", duration)
+		resp200, _ := s.Metrics.GetSerie("response_200", duration)
+		resp404, _ := s.Metrics.GetSerie("response_404", duration)
+		resp429, _ := s.Metrics.GetSerie("response_429", duration)
+		resp500, _ := s.Metrics.GetSerie("response_500", duration)
+		percentile90, _ := s.Metrics.GetPercentile(90, duration)
 		d := Data{
-			Hits:        data,
-			Response200: resp200,
-			Response404: resp404,
-			Response429: resp429,
-			Response500: resp500,
+			Hits:         data,
+			Response200:  resp200,
+			Response404:  resp404,
+			Response429:  resp429,
+			Response500:  resp500,
+			Percentile90: percentile90,
 		}
 		tmpl = template.Must(template.ParseFiles("statics/layout.html"))
 		tmpl.Execute(w, d)

@@ -1,6 +1,38 @@
 <html>
 
 <head>
+    <style>
+caption {
+	padding-bottom: 15px;
+	font-family: 'Verdana';
+	font-size: 1.2em;
+	color:#555;
+}
+
+table {
+	font-family: 'Verdana';
+	font-size: 12pt;          
+	border-collapse: collapse;
+	border: 1px solid #EBEBEB;
+	margin: 10px auto;
+    text-align: center;
+    width: 100%;
+}
+
+table tr:nth-child(odd) {
+  background-color: #fff;
+}
+
+table tr:nth-child(even) {
+  background-color: #FCF9F9;
+}
+
+th {
+	font-weight: 600;
+    padding: 10px;
+}
+
+    </style>
     <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
     <script src="https://code.highcharts.com/highcharts.js"></script>
     <script src="https://code.highcharts.com/modules/exporting.js"></script>
@@ -72,17 +104,99 @@
         });
     };
     
+    function drawPercentile(data, container){
+    Highcharts.chart(container, {
+    chart: {
+        type: 'scatter',
+        zoomType: 'xy'
+    },
+    accessibility: {
+        description: ''
+    },
+    title: {
+        text: ''
+    },
+    subtitle: {
+        text: ''
+    },
+    xAxis: {
+        title: {
+            enabled: true,
+            text: 'Time'
+        },
+        startOnTick: true,
+        endOnTick: true,
+        showLastLabel: true,
+        type: 'datetime'
+    },
+    yAxis: {
+        title: {
+            text: '90th percentile in ms'
+        }
+    },
+    legend: {
+        layout: 'vertical',
+        align: 'left',
+        verticalAlign: 'top',
+        x: 100,
+        y: 70,
+        floating: true,
+        backgroundColor: Highcharts.defaultOptions.chart.backgroundColor,
+        borderWidth: 1
+    },
+    plotOptions: {
+        scatter: {
+            marker: {
+                radius: 5,
+                states: {
+                    hover: {
+                        enabled: true,
+                        lineColor: 'rgb(100,100,100)'
+                    }
+                }
+            },
+            states: {
+                hover: {
+                    marker: {
+                        enabled: false
+                    }
+                }
+            },
+            tooltip: {
+                headerFormat: '<b>{series.name}</b><br>',
+                xDateFormat: '%Y-%m-%d',
+                //pointFormat: '{point.x}, {point.y} ms'
+                //headerFormat: '<b>{series.name}</b><br>',
+                //formatter: function() {
+                //    return  '<b>' + this.series.name +'</b><br/>' +
+                //        Highcharts.dateFormat('%e - %b - %Y',
+                //                              new Date(point.x))
+                //    + '  <br/>' + point.y + ' ms.';
+                //}
+                //pointFormat: '{point.x} cm, {point.y} kg'
+            }
+        }
+    },
+    series: [{
+        name: 'Percentile 90',
+        color: 'rgba(223, 83, 83, .5)',
+        data: data}]
+});
+
+    }
     </script>
 
 </head>
 <body>
-    <div id="container" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+    <div id="containerHits" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
     <div style="width: 100%">
-        <div id="container200" style="max-width: 25%; height: 400px; margin: 0 auto; display: inline-block"></div>
-        <div id="container404" style="max-width: 25%; height: 400px; margin: 0 auto; display: inline-block"></div>
-        <div id="container429" style="max-width: 25%; height: 400px; margin: 0 auto; display: inline-block"></div>
-        <div id="container500" style="max-width: 25%; height: 400px; margin: 0 auto; display: inline-block"></div>
+        <div id="container200" style="min-width: 49%; height: 400px; margin: 0 auto; display: inline-block"></div>
+        <div id="container404" style="min-width: 49%; height: 400px; margin: 0 auto; display: inline-block"></div>
+        <div id="container429" style="min-width: 49%; height: 400px; margin: 0 auto; display: inline-block"></div>
+        <div id="container500" style="min-width: 49%; height: 400px; margin: 0 auto; display: inline-block"></div>
     </div>
+
+    <div id="containerPercentile" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
     
     <script>
         
@@ -92,11 +206,14 @@
         var resp429 = {{ .Response429 }};
         var resp500 = {{ .Response500 }};
 
-        draw(hits, "container", "# of hit rate over time");
+        var percentile90 = {{ .Percentile90 }};
+
+        draw(hits, "containerHits", "# of hit rate over time");
         draw(resp200, "container200", "# of 200 responses over time");
         draw(resp404, "container404", "# of 404 responses over time");
         draw(resp429, "container429", "# of 429 responses over time");
         draw(resp500, "container500", "# of 500 responses over time");
+        drawPercentile(percentile90, "containerPercentile")
     </script>
 </body>
 

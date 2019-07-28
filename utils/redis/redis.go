@@ -72,12 +72,12 @@ func (client *Client) KeysNames(pattern string) (keys []string, err error) {
 	defer conn.Close()
 	n := 0
 	for {
-		fmt.Println("Pattern: ", pattern)
+		//fmt.Println("Pattern: ", pattern)
 		arr, err := redis.Values(conn.Do("SCAN", n, "MATCH", pattern))
 		if err != nil {
 			return keys, fmt.Errorf("error retrieving '%s' keys", pattern)
 		}
-		fmt.Println("Arr: ", arr)
+		//fmt.Println("Arr: ", arr)
 		n, _ = redis.Int(arr[0], nil)
 		k, _ := redis.Strings(arr[1], nil)
 		keys = append(keys, k...)
@@ -91,9 +91,13 @@ func (client *Client) KeysNames(pattern string) (keys []string, err error) {
 
 func (client *Client) TrackTime(keyname string, value float64) {
 	key := fmt.Sprintf("ls:%s", keyname)
+	//fmt.Println("Key for list ", key)
 	conn := client.Pool.Get()
 	defer conn.Close()
+	//resp, err :=
 	conn.Do("RPUSH", key, value)
+	//fmt.Println("Func: ", resp)
+	//fmt.Println("Err: ", err)
 }
 
 func (client *Client) LLen(keyname string) string {
@@ -101,4 +105,12 @@ func (client *Client) LLen(keyname string) string {
 	defer conn.Close()
 	len, _ := redis.String(conn.Do("LLEN", keyname))
 	return len
+}
+
+func (client *Client) GetFromSortedList(keyname string, offset, count int64) (keys []float64, err error) {
+	conn := client.Pool.Get()
+	defer conn.Close()
+	//SORT mylist LIMIT 0 10
+	arr, err := redis.Float64s(conn.Do("SORT", keyname, "LIMIT", offset, count))
+	return arr, err
 }
