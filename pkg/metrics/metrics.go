@@ -75,7 +75,7 @@ func (m *Metrics) SendCode(code int, startTime time.Time) {
 
 	seconds := time.Now().UnixNano() / int64(time.Second)
 	newkey := fmt.Sprintf("%s:time", keyname)
-	//fmt.Println("New key: ", newkey)
+
 	_, err := m.redisConn.IncBy(newkey, seconds)
 	if err != nil {
 		fmt.Println("Error:", err)

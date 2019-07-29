@@ -50,10 +50,8 @@ func (s *MetricsServer) metricsRoute() http.HandlerFunc {
 		timeFrame := r.URL.Query().Get("time")
 
 		generic, simple := keys.GroupKeys(metricKeys)
-		//fmt.Println("Generic: ", generic)
-		//fmt.Println("Simple: ", simple)
+
 		items := s.Metrics.GetKeys(generic)
-		//fmt.Println("Items: ", items)
 		simple = append(simple, items...)
 
 		data := make(map[string]interface{})
@@ -66,8 +64,6 @@ func (s *MetricsServer) metricsRoute() http.HandlerFunc {
 		for _, key := range simple {
 			data[key], _ = s.Metrics.GetSerie(key, dur)
 		}
-		//data, _ := s.Metrics.Get(time.Second * 30)
-		//s.Metrics.GetSerie("hits", time.Second*30)
 
 		buf, _ := json.Marshal(data)
 		w.Header().Set("Content-Type", "application/json")
