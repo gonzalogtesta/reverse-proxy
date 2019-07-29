@@ -97,19 +97,21 @@ func (m *Metrics) getPercentileValue(percentile int, timestamp int64, value floa
 		actual := int64(index)
 		decimal := index - float64(actual)
 		next := actual + 1
+		response1Val := 0.0
+		response2Val := 0.0
 
 		response1, _ := m.redisConn.GetFromSortedList(keyname, actual-1, 1)
-		if len(response1) == 0 {
-			return nil
+		if len(response1) != 0 {
+			response1Val = response1[0]
 		}
 		response2, _ := m.redisConn.GetFromSortedList(keyname, next-1, 1)
-		if len(response2) == 0 {
-			return nil
+		if len(response2) != 0 {
+			response2Val = response2[0]
 		}
 
 		items = []float64{
 			float64(timestamp),
-			float64((1-decimal)*response1[0] + decimal*response2[0]),
+			float64((1-decimal)*response1Val + decimal*response2Val),
 		}
 	} else {
 		round := int64(index)
@@ -249,11 +251,11 @@ func (m *Metrics) GetForPeriod(keyname string, duration time.Duration) (sum int6
 /*
 Connect connects
 */
-func (*Metrics) Connect(ctx context.Context) Metrics {
+func (*Metrics) Connect(ctx context.Context, redisAddr string) Metrics {
 
 	m := Metrics{
 		ctx:       ctx,
-		redisConn: redis.NewClient("localhost:6379", "nohelp", nil),
+		redisConn: redis.NewClient(redisAddr, "nohelp", nil),
 	}
 
 	return m
@@ -262,11 +264,11 @@ func (*Metrics) Connect(ctx context.Context) Metrics {
 /*
 NewMetrics connects
 */
-func NewMetrics(ctx context.Context) Metrics {
+func NewMetrics(ctx context.Context, redisAddr string) Metrics {
 
 	m := Metrics{
 		ctx:       ctx,
-		redisConn: redis.NewClient("localhost:6379", "nohelp", nil),
+		redisConn: redis.NewClient(redisAddr, "nohelp", nil),
 	}
 
 	return m

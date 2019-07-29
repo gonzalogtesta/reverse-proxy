@@ -59,7 +59,7 @@ func (s *Server) processRequest(mapping string) http.HandlerFunc {
 		w.WriteHeader(resp.StatusCode)
 
 		io.Copy(w, resp.Body)
-		resp.Body.Close()
+		//resp.Body.Close()
 
 	}
 }
@@ -99,13 +99,13 @@ func (s *Server) Run() {
 /*
 NewProxy returns a new instance of the proxy Server
 */
-func NewProxy(ctx context.Context, port int, routes []routes.RouteConfig) (s Server) {
+func NewProxy(ctx context.Context, port int, routes []routes.RouteConfig, redisAddr string) (s Server) {
 
 	s = Server{
 		ctx:      ctx,
 		port:     port,
 		routes:   routes,
-		Metrics:  metrics.NewMetrics(ctx),
+		Metrics:  metrics.NewMetrics(ctx, redisAddr),
 		instance: http.NewServeMux(),
 		Client: &http.Client{
 			Timeout: 15 * time.Second,

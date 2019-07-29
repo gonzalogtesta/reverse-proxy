@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"os"
 	"time"
 
 	"meli-proxy/pkg/routes"
@@ -22,10 +23,19 @@ var routing = []routes.RouteConfig{
 func main() {
 	addr := flag.Int("addr", 8081, "HTTP network address")
 
+	redisAddr := *flag.String("redis", "", "Redis server")
+
+	if redisAddr == "" {
+		redisAddr = os.Getenv("REDIS_SERVER")
+		if redisAddr == "" {
+			redisAddr = ":6379"
+		}
+	}
+
 	ctx := context.Background()
 	// s := server.Proxy(ctx, *addr, routing)
 
-	s := proxy.NewProxy(ctx, *addr, routing)
+	s := proxy.NewProxy(ctx, *addr, routing, redisAddr)
 	s.Run()
 
 }
