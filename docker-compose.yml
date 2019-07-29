@@ -1,0 +1,94 @@
+version: '3'
+
+services:
+
+  redis:
+    image: redislabs/redistimeseries
+    networks:
+      - web
+    ports:
+      - 6379:6379
+
+  meli-proxy:
+    image: proxy-server:latest
+    command: -redis "redis:6379"
+    depends_on:
+      - redis
+    ports:
+      - 8081
+    environment:
+      - SERVICE_PORTS=8081
+      - REDIS_SERVER=redis:6379
+    deploy:
+      replicas: 10
+      update_config:
+        parallelism: 5
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+        window: 120s
+    networks:
+      - web
+
+  metrics-server:
+    image: metrics-server:latest
+    command: -redis "redis:6379"
+    depends_on:
+      - redis
+    ports:
+      - 4000
+    environment:
+      - SERVICE_PORTS=4000
+      - REDIS_SERVER=redis:6379
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 5
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+        window: 120s
+    networks:
+      - web
+  
+  lb-proxy:
+    image: dockercloud/haproxy
+    depends_on:
+      - meli-proxy
+    links:
+      - meli-proxy
+    environment:
+      - BALANCE=leastconn
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - 8080:80
+    networks:
+      - web
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+
+  lb-metrics:
+    image: dockercloud/haproxy
+    depends_on:
+      - metrics-server
+    links:
+      - metrics-server
+    environment:
+      - BALANCE=leastconn
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - 4000:80
+    networks:
+      - web
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+
+networks:
+  web:
+    driver: overlay
