@@ -170,7 +170,7 @@ func (m *Metrics) GetPercentile(keyname string, percentile int, duration time.Du
 		close(jobs)
 	}()
 
-	for i := 0; i < 5; i++ { // 5 consumers
+	for i := 0; i < 15; i++ { // 15 consumers
 		wg.Add(1)
 		go m.calculate(i, jobs, results, &wg)
 	}
@@ -279,7 +279,6 @@ func (m *Metrics) GetKeys(generics []string) (keys []string) {
 
 	for _, pattern := range generics {
 		retrievedKeys, _ := m.redisConn.KeysNames(pattern)
-		fmt.Println("Keys: ", retrievedKeys)
 		for _, key := range retrievedKeys {
 			keys = append(keys, key)
 		}
