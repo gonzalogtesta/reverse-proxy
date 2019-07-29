@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sort"
+	"sync"
 	"time"
 
 	"meli-proxy/pkg/keys"
@@ -82,52 +84,93 @@ func (m *Metrics) SendCode(code int, startTime time.Time) {
 
 }
 
+func (m *Metrics) getPercentileValue(percentile int, timestamp int64, value float64) []float64 { //, out chan []float64, wg *sync.WaitGroup) {
+	index := float64(percentile) / 100.0 * value
+
+	items := []float64{}
+	keyname := fmt.Sprintf("ls:%s:%d", "response_200", timestamp/1000)
+	if index == float64(int64(index)) {
+		actual := int64(index)
+		prev := actual - 1
+
+		response1, _ := m.redisConn.GetFromSortedList(keyname, prev-1, 1)
+		if len(response1) == 0 {
+			return nil
+		}
+		response2, _ := m.redisConn.GetFromSortedList(keyname, actual-1, 1)
+		items = []float64{
+			float64(timestamp),
+			float64((response1[0] + response2[0]) / 2),
+		}
+	} else {
+		round := int64(index)
+		response, _ := m.redisConn.GetFromSortedList(keyname, round, 1)
+		if len(response) == 0 {
+			return nil
+		}
+		items = []float64{
+			float64(timestamp),
+			float64(response[0]),
+		}
+
+	}
+	// fmt.Println(items)
+	return items
+}
+
+type Job struct {
+	Percentile int
+	Timestamp  int64
+	Value      float64
+}
+
+func (m *Metrics) Calculate(id int, jobs <-chan Job, results chan<- []float64, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for job := range jobs {
+		result := m.getPercentileValue(job.Percentile, job.Timestamp, job.Value)
+		if result != nil {
+			results <- result
+		}
+	}
+}
+
 func (m *Metrics) GetPercentile(percentile int, duration time.Duration) (info [][]float64, err error) {
-	// TODO: calculate percentiles
+	// TODO: calculate percentiles for any key
 	// Get all keys in a range (duration) e.g. using key name response_200:time
 	// For each timestamp get size of list response_200:timestamp and calculate percentile
 	now := time.Now()
 	fromTimestamp := now.Add(-duration).UnixNano() / 1e6
 	toTimestamp := time.Now().UnixNano() / 1e6
 	data, _ := m.redisConn.AggRange("response_200:time", fromTimestamp, toTimestamp, redis.CountAggregation, 1000)
-	for _, item := range data {
-		num := item.Value
-		index := float64(percentile/100) * num
 
-		keyname := fmt.Sprintf("ls:%s:%d", "response_200", item.Timestamp/1000)
-		//fmt.Println("Keyname: ", keyname)
-		if index == float64(int64(index)) {
-			actual := int64(index)
-			prev := actual - 1
+	var wg sync.WaitGroup
 
-			response1, _ := m.redisConn.GetFromSortedList(keyname, prev-1, 1)
-			//fmt.Println("Error: ", err)
-			if len(response1) == 0 {
-				continue
-			}
-			//fmt.Println("First: ", response1)
-			response2, _ := m.redisConn.GetFromSortedList(keyname, actual-1, 1)
-			//fmt.Println("Second: ", response1)
-			items := []float64{
-				float64(item.Timestamp),
-				float64((response1[0] + response2[0]) / 2),
-			}
-			info = append(info, items)
-		} else {
-			round := int64(index)
-			response, _ := m.redisConn.GetFromSortedList(keyname, round, 1)
-			//fmt.Println("Error: ", err)
-			if len(response) == 0 {
-				continue
-			}
-			items := []float64{
-				float64(item.Timestamp),
-				float64(response[0]),
-			}
-			info = append(info, items)
+	jobs := make(chan Job, len(data))
+	results := make(chan []float64, len(data))
+
+	go func() {
+		for _, c := range data {
+			jobs <- Job{Percentile: percentile, Timestamp: c.Timestamp, Value: c.Value}
 		}
+		close(jobs)
+	}()
 
+	for i := 0; i < 15; i++ { // 15 consumers
+		wg.Add(1)
+		go m.Calculate(i, jobs, results, &wg)
 	}
+
+	wg.Wait()
+	close(results)
+
+	for val := range results {
+		info = append(info, val)
+	}
+
+	sort.Slice(info, func(i, j int) bool {
+		return info[i][0] > info[j][0]
+	})
+
 	return info, nil
 }
 
