@@ -2,46 +2,60 @@
 
 <head>
     <style>
-caption {
-	padding-bottom: 15px;
-	font-family: 'Verdana';
-	font-size: 1.2em;
-	color:#555;
-}
+        caption {
+         padding-bottom: 15px;
+         font-family: 'Verdana';
+         font-size: 1.2em;
+         color:#555;
+     }
 
-table {
-	font-family: 'Verdana';
-	font-size: 12pt;          
-	border-collapse: collapse;
-	border: 1px solid #EBEBEB;
-	margin: 10px auto;
-    text-align: center;
-    width: 100%;
-}
+     table {
+         font-family: 'Verdana';
+         font-size: 12pt;          
+         border-collapse: collapse;
+         border: 1px solid #EBEBEB;
+         margin: 10px auto;
+         text-align: center;
+         width: 100%;
+     }
 
-table tr:nth-child(odd) {
-  background-color: #fff;
-}
+     table tr:nth-child(odd) {
+      background-color: #fff;
+  }
 
-table tr:nth-child(even) {
-  background-color: #FCF9F9;
-}
+  table tr:nth-child(even) {
+      background-color: #FCF9F9;
+  }
 
-th {
-	font-weight: 600;
-    padding: 10px;
-}
+  th {
+     font-weight: 600;
+     padding: 10px;
+ }
 
-    </style>
-    <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
-    <script src="https://code.highcharts.com/highcharts.js"></script>
-    <script src="https://code.highcharts.com/modules/exporting.js"></script>
-    <script src="https://code.highcharts.com/modules/export-data.js"></script>
+</style>
+<script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://code.highcharts.com/modules/data.js"></script>
+<script src="https://code.highcharts.com/modules/exporting.js"></script>
+<script src="https://code.highcharts.com/modules/export-data.js"></script>
+
+<script> 
+
+    var urlParam = function (name) {
+        var results = new RegExp('[\?&]' + name + '=([^&#]*)')
+        .exec(window.location.search);
+
+        return (results !== null) ? results[1] || 0 : false;
+    }
+
+    Highcharts.setOptions({
+        time: {
+            timezoneOffset: new Date().getTimezoneOffset()
+        }
+    });
+
     
-    <script> 
-    
-    // 'https://cdn.jsdelivr.net/gh/highcharts/highcharts@v7.0.0/samples/data/usdeur.json',
-    function draw (data, elem, title) {
+    var draw = function (data, elem, title) {
 
         Highcharts.chart(elem, {
             chart: {
@@ -52,7 +66,7 @@ th {
             },
             subtitle: {
                 text: document.ontouchstart === undefined ?
-                    'Click and drag in the plot area to zoom in' : 'Pinch the chart to zoom in'
+                'Click and drag in the plot area to zoom in' : 'Pinch the chart to zoom in'
             },
             xAxis: {
                 type: 'datetime'
@@ -76,8 +90,8 @@ th {
                             y2: 1
                         },
                         stops: [
-                            [0, Highcharts.getOptions().colors[0]],
-                            [1, Highcharts.Color(Highcharts.getOptions().colors[0]).setOpacity(0).get('rgba')]
+                        [0, Highcharts.getOptions().colors[0]],
+                        [1, Highcharts.Color(Highcharts.getOptions().colors[0]).setOpacity(0).get('rgba')]
                         ]
                     },
                     marker: {
@@ -104,87 +118,135 @@ th {
         });
     };
     
-    function drawPercentile(data, container){
-    Highcharts.chart(container, {
-    chart: {
-        type: 'scatter',
-        zoomType: 'xy'
-    },
-    accessibility: {
-        description: ''
-    },
-    title: {
-        text: ''
-    },
-    subtitle: {
-        text: ''
-    },
-    xAxis: {
-        title: {
-            enabled: true,
-            text: 'Time'
-        },
-        startOnTick: true,
-        endOnTick: true,
-        showLastLabel: true,
-        type: 'datetime'
-    },
-    yAxis: {
-        title: {
-            text: '90th percentile in ms'
-        }
-    },
-    legend: {
-        layout: 'vertical',
-        align: 'left',
-        verticalAlign: 'top',
-        x: 100,
-        y: 70,
-        floating: true,
-        backgroundColor: Highcharts.defaultOptions.chart.backgroundColor,
-        borderWidth: 1
-    },
-    plotOptions: {
-        scatter: {
-            marker: {
-                radius: 5,
-                states: {
-                    hover: {
-                        enabled: true,
-                        lineColor: 'rgb(100,100,100)'
+    var drawNewPercentiles = function(data, container) {
+        Highcharts.chart(container, {
+            chart: {
+                type: 'spline',
+                animation: Highcharts.svg, // don't animate in old IE
+                marginRight: 10,
+                events: {
+                    load: function () {
+
+                        // set up the updating of the chart each second
+                        var series = this.series[0];
+                        setInterval(function () {
+                            var x = (new Date()).getTime(), // current time
+                            y = Math.random();
+                            series.addPoint([x, y], true, true);
+                        }, 1000);
                     }
                 }
             },
-            states: {
-                hover: {
-                    marker: {
-                        enabled: false
-                    }
-                }
+
+            time: {
+                useUTC: false
+            },
+
+            title: {
+                text: 'Live random data'
+            },
+            xAxis: {
+                type: 'datetime',
+                tickPixelInterval: 150
+            },
+            yAxis: {
+                title: {
+                    text: 'Value'
+                },
+                plotLines: [{
+                    value: 0,
+                    width: 1,
+                    color: '#808080'
+                }]
             },
             tooltip: {
-                headerFormat: '<b>{series.name}</b><br>',
-                xDateFormat: '%Y-%m-%d',
-                //pointFormat: '{point.x}, {point.y} ms'
-                //headerFormat: '<b>{series.name}</b><br>',
-                //formatter: function() {
-                //    return  '<b>' + this.series.name +'</b><br/>' +
-                //        Highcharts.dateFormat('%e - %b - %Y',
-                //                              new Date(point.x))
-                //    + '  <br/>' + point.y + ' ms.';
-                //}
-                //pointFormat: '{point.x} cm, {point.y} kg'
-            }
-        }
-    },
-    series: [{
-        name: 'Percentile 90',
-        color: 'rgba(223, 83, 83, .5)',
-        data: data}]
-});
+                headerFormat: '<b>{series.name}</b><br/>',
+                pointFormat: '{point.x:%Y-%m-%d %H:%M:%S}<br/>{point.y:.2f}'
+            },
+            legend: {
+                enabled: false
+            },
+            exporting: {
+                enabled: false
+            },
+            series: [{
+                name: 'Random data',
+                data: data
+            }]
+        });
+    };
 
-    }
-    </script>
+    var drawPercentiles = function (data, container){
+        Highcharts.chart(container, {
+            chart: {
+                type: 'scatter',
+                zoomType: 'xy'
+            },
+            accessibility: {
+                description: ''
+            },
+            title: {
+                text: ''
+            },
+            subtitle: {
+                text: ''
+            },
+            xAxis: {
+                title: {
+                    enabled: true,
+                    text: 'Time'
+                },
+                startOnTick: true,
+                endOnTick: true,
+                showLastLabel: true,
+                type: 'datetime'
+            },
+            yAxis: {
+                title: {
+                    text: 'percentiles in ms'
+                }
+            },
+            legend: {
+                layout: 'vertical',
+                align: 'left',
+                verticalAlign: 'top',
+                x: 100,
+                y: 70,
+                floating: true,
+                backgroundColor: Highcharts.defaultOptions.chart.backgroundColor,
+                borderWidth: 1
+            },
+            plotOptions: {
+                scatter: {
+                    marker: {
+                        radius: 5,
+                        states: {
+                            hover: {
+                                enabled: true,
+                                lineColor: 'rgb(100,100,100)'
+                            }
+                        }
+                    },
+                    states: {
+                        hover: {
+                            marker: {
+                                enabled: false
+                            }
+                        }
+                    },
+                    tooltip: {
+                        headerFormat: '<b>{series.name}</b><br>',
+                        xDateFormat: '%Y-%m-%d'
+                    }
+                }
+            },
+            series: data
+        });
+
+    };
+
+    
+</script>
 
 </head>
 <body>
@@ -199,21 +261,63 @@ th {
     <div id="containerPercentile" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
     
     <script>
+
+        let time = urlParam('time');
+
+        $.getJSON('/metrics?metrics=hits&time=' + time, function (data) {
+            draw(data['hits'], "containerHits", "# of hit rate over time");
+        });
+
+        $.getJSON('/metrics?metrics=response_200&time=' + time, function (data) {
+            draw(data['response_200'], "container200", "# of 200 responses over time");
+        });
+
+        $.getJSON('/metrics?metrics=response_404&time=' + time, function (data) {
+            draw(data['response_404'], "container404", "# of 404 responses over time");
+        });
+
+        $.getJSON('/metrics?metrics=response_429&time=' + time, function (data) {
+            draw(data['response_429'], "container429", "# of 429 responses over time");
+        });
+
+        $.getJSON('/metrics?metrics=response_500&time=' + time, function (data) {
+            draw(data['response_500'], "container500", "# of 500 responses over time");
+        });
+
         
-        var hits = {{ .Hits }};
-        var resp200 = {{ .Response200 }};
-        var resp404 = {{ .Response404 }};
-        var resp429 = {{ .Response429 }};
-        var resp500 = {{ .Response500 }};
+        var getPercentile = function (percentile) {
+            return $.getJSON('/metrics/percentiles?percentile='+ percentile + '&time=' + time);
+        }
 
-        var percentile90 = {{ .Percentile90 }};
 
-        draw(hits, "containerHits", "# of hit rate over time");
-        draw(resp200, "container200", "# of 200 responses over time");
-        draw(resp404, "container404", "# of 404 responses over time");
-        draw(resp429, "container429", "# of 429 responses over time");
-        draw(resp500, "container500", "# of 500 responses over time");
-        drawPercentile(percentile90, "containerPercentile")
+        $.when(getPercentile(90), getPercentile(95), getPercentile(99))
+        .then(function(percentile90, percentile95, percentile99) {
+
+            var percentiles = [
+            {
+                name: 'Percentile 90',
+                color: 'rgba(223, 83, 83, .5)',
+                data: percentile90[0],
+                type: 'spline'
+            },
+            {
+                name: 'Percentile 95',
+                color: 'rgba(83, 149, 223, .5)',
+                data: percentile95[0],
+                type: 'line'
+            },
+            {
+                name: 'Percentile 99',
+                color: 'rgba(25, 159, 21, .8)',
+                data: percentile99[0],
+
+            }
+            ];
+
+            drawPercentiles(percentiles, "containerPercentile");
+        });
+        
+        
     </script>
 </body>
 
