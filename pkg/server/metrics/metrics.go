@@ -60,6 +60,8 @@ func (s *MetricsServer) metricsRoute() http.HandlerFunc {
 		dur, err := time.ParseDuration(timeFrame)
 		if err != nil {
 			dur = time.Second * 30
+			fmt.Println("Unable to parse duration")
+			fmt.Println(err)
 		}
 		for _, key := range simple {
 			data[key], _ = s.Metrics.GetSerie(key, dur)
@@ -90,8 +92,8 @@ func (s *MetricsServer) metricsPercentilesRoute() http.HandlerFunc {
 		if err != nil {
 			duration = time.Second * 30
 		}
-
-		data, _ := s.Metrics.GetPercentile(percentile, duration)
+		metric := r.URL.Query().Get("metric")
+		data, _ := s.Metrics.GetPercentile(metric, percentile, duration)
 
 		buf, _ := json.Marshal(data)
 		w.Header().Set("Content-Type", "application/json")

@@ -50,7 +50,7 @@ CreateKey creates key with duration
 func (m *Metrics) CreateKey(key string, duration string) {
 	var timeDuration, _ = time.ParseDuration(duration)
 	_, havit := m.redisConn.Info(key)
-	fmt.Println("Have it: " + key)
+
 	if havit != nil {
 		m.redisConn.CreateKey(key, timeDuration)
 	}
@@ -84,23 +84,32 @@ func (m *Metrics) SendCode(code int, startTime time.Time) {
 
 }
 
-func (m *Metrics) getPercentileValue(percentile int, timestamp int64, value float64) []float64 { //, out chan []float64, wg *sync.WaitGroup) {
-	index := float64(percentile) / 100.0 * value
+/*
+getPercentileValue calculates percentiles using Stanford
+formula: https://web.stanford.edu/class/archive/anthsci/anthsci192/anthsci192.1064/handouts/calculating%20percentiles.pdf
+*/
+func (m *Metrics) getPercentileValue(percentile int, timestamp int64, value float64) []float64 {
+	index := (float64(value)*float64(percentile))/100.0 + 0.5
 
 	items := []float64{}
 	keyname := fmt.Sprintf("ls:%s:%d", "response_200", timestamp/1000)
-	if index == float64(int64(index)) {
+	if index != float64(int64(index)) {
 		actual := int64(index)
-		prev := actual - 1
+		decimal := index - float64(actual)
+		next := actual + 1
 
-		response1, _ := m.redisConn.GetFromSortedList(keyname, prev-1, 1)
+		response1, _ := m.redisConn.GetFromSortedList(keyname, actual-1, 1)
 		if len(response1) == 0 {
 			return nil
 		}
-		response2, _ := m.redisConn.GetFromSortedList(keyname, actual-1, 1)
+		response2, _ := m.redisConn.GetFromSortedList(keyname, next-1, 1)
+		if len(response2) == 0 {
+			return nil
+		}
+
 		items = []float64{
 			float64(timestamp),
-			float64((response1[0] + response2[0]) / 2),
+			float64((1-decimal)*response1[0] + decimal*response2[0]),
 		}
 	} else {
 		round := int64(index)
@@ -114,17 +123,23 @@ func (m *Metrics) getPercentileValue(percentile int, timestamp int64, value floa
 		}
 
 	}
-	// fmt.Println(items)
+
 	return items
 }
 
+/*
+Job struct to handle the calculations to be performed
+*/
 type Job struct {
 	Percentile int
 	Timestamp  int64
 	Value      float64
 }
 
-func (m *Metrics) Calculate(id int, jobs <-chan Job, results chan<- []float64, wg *sync.WaitGroup) {
+/*
+calculate allows to calculate percentiles using concurrency
+*/
+func (m *Metrics) calculate(id int, jobs <-chan Job, results chan<- []float64, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for job := range jobs {
 		result := m.getPercentileValue(job.Percentile, job.Timestamp, job.Value)
@@ -134,14 +149,14 @@ func (m *Metrics) Calculate(id int, jobs <-chan Job, results chan<- []float64, w
 	}
 }
 
-func (m *Metrics) GetPercentile(percentile int, duration time.Duration) (info [][]float64, err error) {
-	// TODO: calculate percentiles for any key
-	// Get all keys in a range (duration) e.g. using key name response_200:time
-	// For each timestamp get size of list response_200:timestamp and calculate percentile
+/*
+GetPercentile calculates a percentile for a given key name metric
+*/
+func (m *Metrics) GetPercentile(keyname string, percentile int, duration time.Duration) (info [][]float64, err error) {
 	now := time.Now()
 	fromTimestamp := now.Add(-duration).UnixNano() / 1e6
 	toTimestamp := time.Now().UnixNano() / 1e6
-	data, _ := m.redisConn.AggRange("response_200:time", fromTimestamp, toTimestamp, redis.CountAggregation, 1000)
+	data, _ := m.redisConn.AggRange(keyname, fromTimestamp, toTimestamp, redis.CountAggregation, 1000)
 
 	var wg sync.WaitGroup
 
@@ -155,9 +170,9 @@ func (m *Metrics) GetPercentile(percentile int, duration time.Duration) (info []
 		close(jobs)
 	}()
 
-	for i := 0; i < 15; i++ { // 15 consumers
+	for i := 0; i < 5; i++ { // 5 consumers
 		wg.Add(1)
-		go m.Calculate(i, jobs, results, &wg)
+		go m.calculate(i, jobs, results, &wg)
 	}
 
 	wg.Wait()
