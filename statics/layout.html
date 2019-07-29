@@ -286,7 +286,7 @@
 
         
         var getPercentile = function (percentile) {
-            return $.getJSON('/metrics/percentiles?percentile='+ percentile + '&time=' + time);
+            return $.getJSON('/metrics/percentiles?metric=response_200:time&percentile='+ percentile + '&time=' + time);
         }
 
 
