@@ -10,11 +10,15 @@ import (
 	metricsserver "meli-proxy/pkg/server/metrics"
 )
 
+var redisAddrFlag := flag.String("redis", "", "Redis server")
+
 func main() {
+
+	flag.Parse()
 
 	runtime.GOMAXPROCS(12)
 
-	redisAddr := *flag.String("redis", "", "Redis server")
+	redisAddr := *redisAddrFlag
 
 	if redisAddr == "" {
 		redisAddr = os.Getenv("REDIS_SERVER")
