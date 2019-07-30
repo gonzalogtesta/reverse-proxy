@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"os"
 	"time"
 
@@ -20,10 +21,14 @@ var routing = []routes.RouteConfig{
 	},
 }
 
-func main() {
-	addr := flag.Int("addr", 8081, "HTTP network address")
+var addrFlag = flag.Int("addr", 8081, "HTTP network address")
+var redisAddrFlag = flag.String("redis", "", "Redis server")
+var configFile = flag.String("config", "", "Config file")
 
-	redisAddr := *flag.String("redis", "", "Redis server")
+func main() {
+	flag.Parse()
+
+	redisAddr := *redisAddrFlag
 
 	if redisAddr == "" {
 		redisAddr = os.Getenv("REDIS_SERVER")
@@ -32,10 +37,14 @@ func main() {
 		}
 	}
 
-	ctx := context.Background()
-	// s := server.Proxy(ctx, *addr, routing)
+	if *configFile != "" {
+		fmt.Println("Reading config file: ", *configFile)
+		routing = append(routing, routes.ReadFileRoute(*configFile))
+	}
 
-	s := proxy.NewProxy(ctx, *addr, routing, redisAddr)
+	ctx := context.Background()
+
+	s := proxy.NewProxy(ctx, *addrFlag, routing, redisAddr)
 	s.Run()
 
 }

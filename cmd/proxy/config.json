@@ -1,0 +1,7 @@
+{
+    "path": "/cars",
+	"server": "http://apps-sysone-app.apps.us-east-2.online-starter.openshift.com/",
+	"limit": 100,
+	"time": "2m",
+	"limitType": "OriginIP"
+}

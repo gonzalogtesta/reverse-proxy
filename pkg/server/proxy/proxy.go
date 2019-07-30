@@ -44,8 +44,8 @@ func (s *Server) processRequest(mapping string) http.HandlerFunc {
 		resp, err := s.Client.Do(req)
 
 		if err != nil {
-			fmt.Println("Errored when sending request to the server")
-			fmt.Println(err)
+			log.Println("Errored when sending request to the server")
+			log.Println(err)
 			return
 		}
 		timer.Stop()
@@ -59,7 +59,6 @@ func (s *Server) processRequest(mapping string) http.HandlerFunc {
 		w.WriteHeader(resp.StatusCode)
 
 		io.Copy(w, resp.Body)
-		//resp.Body.Close()
 
 	}
 }
@@ -87,6 +86,7 @@ func (s *Server) Run() {
 		}))))
 
 	for _, route := range s.routes {
+		log.Println("Adding route: ", route)
 		s.instance.HandleFunc(route.Path, middleware.TrackUser(route, s.Metrics, middleware.IsAllowed(route, s.Metrics, s.processRequest(route.Server))))
 	}
 
