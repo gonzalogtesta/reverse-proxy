@@ -9,7 +9,7 @@ services:
     ports:
       - 6379:6379
 
-  meli-proxy:
+  reverse-proxy:
     image: proxy-server:latest
     command: -redis "redis:6379"
     depends_on:
@@ -56,9 +56,9 @@ services:
   lb-proxy:
     image: dockercloud/haproxy
     depends_on:
-      - meli-proxy
+      - reverse-proxy
     links:
-      - meli-proxy
+      - reverse-proxy
     environment:
       - BALANCE=leastconn
     volumes:
