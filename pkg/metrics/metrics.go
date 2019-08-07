@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"meli-proxy/pkg/keys"
-	"meli-proxy/pkg/routes"
-	"meli-proxy/utils/redis"
+	"reverse-proxy/pkg/keys"
+	"reverse-proxy/pkg/routes"
+	"reverse-proxy/utils/redis"
 )
 
 /*
