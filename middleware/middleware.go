@@ -1,9 +1,9 @@
 package middleware
 
 import (
-	"meli-proxy/pkg/keys"
-	"meli-proxy/pkg/metrics"
-	"meli-proxy/pkg/routes"
+	"reverse-proxy/pkg/keys"
+	"reverse-proxy/pkg/metrics"
+	"reverse-proxy/pkg/routes"
 	"net/http"
 	"time"
 )
