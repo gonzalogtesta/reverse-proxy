@@ -11,9 +11,9 @@ import (
 	"strconv"
 	"time"
 
-	"meli-proxy/middleware"
-	"meli-proxy/pkg/metrics"
-	"meli-proxy/pkg/routes"
+	"reverse-proxy/middleware"
+	"reverse-proxy/pkg/metrics"
+	"reverse-proxy/pkg/routes"
 )
 
 /*
