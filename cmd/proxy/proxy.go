@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
-	"meli-proxy/pkg/routes"
-	"meli-proxy/pkg/server/proxy"
+	"reverse-proxy/pkg/routes"
+	"reverse-proxy/pkg/server/proxy"
 )
 
 var routing = []routes.RouteConfig{
