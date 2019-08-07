@@ -6,8 +6,8 @@ import (
 	"os"
 	"runtime"
 
-	metrics "meli-proxy/pkg/metrics"
-	metricsserver "meli-proxy/pkg/server/metrics"
+	metrics "reverse-proxy/pkg/metrics"
+	metricsserver "reverse-proxy/pkg/server/metrics"
 )
 
 var redisAddrFlag := flag.String("redis", "", "Redis server")
