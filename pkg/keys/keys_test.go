@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"meli-proxy/pkg/routes"
+	"reverse-proxy/pkg/routes"
 )
 
 func TestGenerateKeyUsingRouteOriginIP(t *testing.T) {
