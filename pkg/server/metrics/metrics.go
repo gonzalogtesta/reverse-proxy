@@ -10,8 +10,8 @@ import (
 	"net/http"
 	"time"
 
-	"meli-proxy/pkg/keys"
-	"meli-proxy/pkg/metrics"
+	"reverse-proxy/pkg/keys"
+	"reverse-proxy/pkg/metrics"
 )
 
 type MetricsServer struct {
