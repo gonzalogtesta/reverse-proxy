@@ -13,8 +13,8 @@ import (
 
 var routing = []routes.RouteConfig{
 	routes.RouteConfig{
-		Path:      "/categories/",
-		Server:    "https://api.mercadolibre.com",
+		Path:      "/test/",
+		Server:    "https://localhost",
 		Limit:     5000,
 		Time:      time.Second,
 		LimitType: routes.OriginIPDestinationPath,
