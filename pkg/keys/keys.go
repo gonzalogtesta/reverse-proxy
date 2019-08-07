@@ -2,8 +2,8 @@ package keys
 
 import (
 	"fmt"
-	"meli-proxy/pkg/routes"
-	"meli-proxy/utils/ip"
+	"reverse-proxy/pkg/routes"
+	"reverse-proxy/utils/ip"
 	"net/http"
 	"strings"
 )
