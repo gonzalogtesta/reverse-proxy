@@ -61,7 +61,7 @@ Rate limiter use an algorithm that calculates if the user exceeded the limit in 
 
 ### Proxy request examples:
 
-> curl http://localhost:8081/categories/MLA1000
+> curl http://localhost:8081/cars/1234567
 
 > curl http://localhost:8081/cars
 
@@ -142,13 +142,6 @@ Returns: a list of the items calculated for the percentil
 
 - Retrieve 90th percentile for metric response_200 in the last 24 hs: http://localhost:4000/metrics/percentiles?time=24h&percentile=90&metric=response_200
 
-
-## Live demo
-
-There is an instance of both applications running in an AWS:
-
- - Proxy server: http://ec2-3-17-190-52.us-east-2.compute.amazonaws.com:8080/categories/MLA1000
- - Metrics server: http://ec2-3-17-190-52.us-east-2.compute.amazonaws.com:4000/metrics/percentiles?percentile=90&time=1h&metric=response_200
 
 
 ## Dashboard
