@@ -3,7 +3,7 @@ RUN apk update && apk add git
 # bash build-base curl
 
 # Set the Current Working Directory inside the container
-WORKDIR $GOPATH/src/meli-proxy
+WORKDIR $GOPATH/src/reverse-proxy
 
 # Copy everything from the current directory to the PWD(Present Working Directory) inside the container
 COPY . .
@@ -16,7 +16,7 @@ RUN go get -d -v ./...
 
 COPY ./statics/layout.html /go/bin/statics/layout.html
 
-WORKDIR $GOPATH/src/meli-proxy/cmd/metrics
+WORKDIR $GOPATH/src/reverse-proxy/cmd/metrics
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -ldflags="-w -s" -o /go/bin/metrics .
 
