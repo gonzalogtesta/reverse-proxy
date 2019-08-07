@@ -1,10 +1,9 @@
-# meli-proxy
+# reverse-proxy
 
 Implementation of a Reverse Proxy in Go, using Redis Time Series for tracking metrics.
 
 It's divided in two applications, the proxy server and a metrics server.
 
-__Presentation + Architecture:__ https://docs.google.com/presentation/d/16XTeF5aOo6HOtLUutqzD14VDhaAB6431Ngt2dyE7lec/edit?usp=sharing
 
 ## Instalation
 
