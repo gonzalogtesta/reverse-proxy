@@ -157,4 +157,4 @@ Metrics server includes an example dashboard using Highcharts, that include:
  - Percentile 95th
  - Percentile 99th
  
-Dashboard URL: http://ec2-3-17-190-52.us-east-2.compute.amazonaws.com:4000/metrics/html?time=24h
+Dashboard URL: http://localhost:4000/metrics/html?time=24h
