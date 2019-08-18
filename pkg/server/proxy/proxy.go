@@ -3,7 +3,6 @@ package proxy
 import (
 	"context"
 	"crypto/tls"
-	"fmt"
 	"io"
 	"log"
 	"net"
@@ -30,25 +29,19 @@ type Server struct {
 
 func (s *Server) processRequest(mapping string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("Request:")
-		fmt.Println(s.port)
+		log.Printf("Request: %d - %s", s.port, r.RequestURI)
 
-		ctx, cancel := context.WithCancel(context.TODO())
-		timer := time.AfterFunc(5*time.Second, func() {
-			cancel()
-		})
-
+		ctx := r.Context()
 		req, err := http.NewRequest(r.Method, mapping+r.RequestURI, nil)
 		req = req.WithContext(ctx)
 		req.Header.Add("Accept", "application/json")
 		resp, err := s.Client.Do(req)
 
 		if err != nil {
-			log.Println("Errored when sending request to the server")
-			log.Println(err)
+			log.Fatal("Errored when sending request to the server")
+			log.Fatal(err)
 			return
 		}
-		timer.Stop()
 
 		defer resp.Body.Close()
 
